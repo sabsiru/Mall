@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="MemberDao">
+	<sql id="select">
+		Select
+		mno,id,pass,name,phone,mail,addr,detailaddr,postcode,powerno,regdate
+	</sql>
+
+	<!--회원가입 -->
+	<insert id="join" parameterType="MemberVO">
+		insert into
+		mallmember(mno,id,pass,name,phone,mail,addr,detailaddr,postcode,regdate)
+		values(mno_seq.nextval,#{id},#{pass},#{name},#{phone},#{mail},#{addr},#{detailaddr},#{postcode},sysdate)
+	</insert>
+
+	<!--id중복체크 -->
+	<select id="idCheck" resultType="int">
+		select count(*) from mallmember where id=#{id}
+	</select>
+	<!-- phone 중복체크 -->
+	<select id="phoneCheck" resultType="int">
+		select count(*) from mallmember where phone=#{phone}
+	</select>
+
+	<!-- 비밀번호 일치 체크 session의 id값과 입력한 pass 값 -->
+	<select id="getPass" resultType="int">
+		select count(*) from mallmember where id=#{id} and pass=#{pass}
+	</select>
+	<!-- 전화번호 가져오기 -->
+	<select id="getPhone" resultType="int">
+		select count(*) from mallmember where id=#{id} and phone=#{phone}
+	</select>
+
+	<!--로그인 -->
+	<select id="login" resultType="MemberVO">
+		<include refid="select" />
+		from mallmember
+		where id=#{id} and pass=#{pass}
+	</select>
+
+	<!--아이디 찾기 -->
+	<select id="findId" resultType="STRING">
+		select id
+		from mallmember
+		where name=#{name} and phone=#{phone}
+	</select>
+
+	<!--비밀번호 찾기 -->
+	<select id="findPass" resultType="String">
+		select pass
+		from mallmember
+		where id=#{id} and phone=#{phone}
+	</select>
+
+	<!-- myPage 상세조회 -->
+	<select id="myPage" resultType="MemberVO">
+		<include refid="select" />
+		from mallmember
+		where id=#{id}
+	</select>
+
+	<!--회원 정보 수정 phone,email,postcode,addr,detailaddr -->
+	<update id="updateMember" parameterType="MemberVO">
+		update mallmember
+		set
+		phone=#{phone},mail=#{mail},postcode=#{postcode},addr=#{addr},detailaddr=#{detailaddr}
+		where id=#{id}
+	</update>
+	<!--비밀번호 변경 -->
+	<update id="updatePass" parameterType="MemberVO">
+		update mallmember
+		set pass=#{pass}
+		where id=#{id}
+	</update>
+	<!-- 탈퇴 -->
+	<delete id="deleteMember" parameterType="MemberVO">
+		delete from mallmember
+		where id=#{id} and pass=#{pass}
+	</delete>
+
+	<!-- 회원관리 페이징 -->
+	<select id="memberList" parameterType="map"
+		resultType="MemberVO">
+		<include refid="select" />
+		FROM
+		(SELECT A.*,
+		ROWNUM RNUM FROM (SELECT * FROM MALLMEMBER where 1=1
+		<include refid="searchMember" />
+		ORDER BY mno desc)A)
+        <![CDATA[
+		WHERE RNUM >= #{startCount} AND RNUM <= #{endCount}
+		]]>
+	</select>
+	<!-- 검색 -->
+	<sql id="searchMember">
+		<if test="keyField != null">
+			<if test="keyField == 'all'">AND(
+				mno LIKE '%' || #{keyWord} || '%'
+				OR id LIKE '%' || #{keyWord} || '%'
+				OR phone LIKE '%' || #{keyWord} || '%'
+				OR addr LIKE '%' || #{keyWord} || '%'
+				OR name LIke '%' || #{keyWord} ||'%')
+			</if>
+			<if test="keyField == 'mno'">AND mno LIKE '%' || #{keyWord} || '%'</if>
+			<if test="keyField == 'id'">AND id LIKE '%' || #{keyWord} || '%'</if>
+			<if test="keyField == 'phone'">AND phone LIKE '%' || #{keyWord} || '%'</if>
+			<if test="keyField == 'addr'">AND addr LIKE '%' || #{keyWord} || '%'</if>
+			<if test="keyField == 'name'">AND name LIKE '%' || #{keyWord} || '%'</if>
+
+		</if>
+	</sql>
+	<!-- 멤버 수 -->
+	<select id="memberCount" parameterType="map" resultType="int">
+		select count(*) from mallmember where 1=1
+		<include refid="searchMember" />
+	</select>
+
+	<!-- 회원정보 보기 -->
+	<select id="getMember" parameterType="int" resultType="MemberVO">
+		<include refid="select" />
+		from mallmember
+		where mno=#{mno}
+	</select>
+</mapper>

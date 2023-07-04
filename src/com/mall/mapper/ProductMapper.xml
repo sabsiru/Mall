@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ProductDao">
+    <sql id="select">
+        Select
+            pno,pimage,detailimage,pname,price,pcontent,prdate,delinfo
+    </sql>
+    <!-- 페이징 -->
+    <select id="productList" parameterType="map"
+            resultType="ProductVO">
+        <include refid="select" />
+        FROM
+        (SELECT A.*,
+        ROWNUM RNUM FROM (SELECT * FROM product where 1=1
+       <if test="keyField != null">
+            <if test="keyField == 'pname'">AND pname LIKE '%' || #{keyWord} || '%'</if>
+        </if>
+        ORDER BY pno desc)A)
+        <![CDATA[
+		WHERE RNUM >= #{startCount} AND RNUM <= #{endCount} and delinfo='no'
+		]]>
+    </select>
+    <!-- 삭제 페이징 -->
+    <select id="productListDelete" parameterType="map"
+            resultType="ProductVO">
+        <include refid="select" />
+        FROM
+        (SELECT A.*,
+        ROWNUM RNUM FROM (SELECT * FROM product where 1=1
+        <include refid="searchProduct" />
+        ORDER BY pno desc)A)
+        <![CDATA[
+		WHERE RNUM >= #{startCount} AND RNUM <= #{endCount} and delinfo='yes'
+		]]>
+    </select>
+
+    <!-- 검색 -->
+    <sql id="searchProduct">
+        <if test="keyField != null">
+            <if test="keyField == 'pname'">AND pname LIKE '%' || #{keyWord} || '%'</if>
+        </if>
+    </sql>
+
+    <select id="productCount" parameterType="map"
+            resultType="Integer">
+        SELECT COUNT (*) FROM product where 1=1 and delinfo = 'no'
+       <if test="keyField != null">
+            <if test="keyField == 'pname'">AND pname LIKE '%' || #{keyWord} || '%'</if>
+        </if>
+    </select>
+
+    <!-- 상세보기 -->
+    <select id="productDetail" parameterType="int"
+            resultType="ProductVO">
+        select * from product where pno=#{pno}
+    </select>
+    <!-- 옵션 리스트 불러오기 -->
+    <select id="optionList" parameterType="map"
+            resultType="ProductVO">
+        /*option 이름 순으로 정렬*/
+        select * from poption where pno=#{pno} order by optionvalue1 desc
+    </select>
+
+    <!-- getOptionCount -->
+    <select id="getOptionCount" parameterType="int"
+            resultType="Integer">
+        select count(*) from poption where pno=#{pno}
+    </select>
+
+    <!-- 재고 갱신 -->
+    <update id="updateRemainCart" parameterType="ProductVO">
+        UPDATE poption
+        SET remain = remain - #{cartcount}
+        <if test="optionvalue2 !='nooption2'">
+            WHERE pno = #{pno} and optionvalue1 = #{optionvalue1} and optionvalue2 = #{optionvalue2}
+        </if>
+        <if test="optionvalue2 == 'nooption2'">
+            WHERE pno = #{pno} and optionvalue1 = #{optionvalue1} and optionvalue2 is null
+        </if>
+    </update>
+    <!-- 재고 확인 하기 -->
+    <select id="checkRemain" parameterType="ProductVO"
+            resultType="Integer">
+        select remain from poption
+        <if test="optionvalue2 !='nooption2'">
+            where pno=#{pno} and optionvalue1 = #{optionvalue1} and optionvalue2 = #{optionvalue2}
+        </if>
+        <if test="optionvalue2 =='nooption2'">
+            where pno=#{pno} and optionvalue1 = #{optionvalue1} and optionvalue2 is null
+        </if>
+    </select>
+
+    <!-- 재고 확인 하기 -->
+    <select id="checkRemainNoOption2" parameterType="ProductVO"
+            resultType="Integer">
+        select remain from poption where pno=#{pno} and optionvalue1 =
+                                                        #{optionvalue1} and optionvalue2 is null
+    </select>
+
+    <!-- pno optionvalue1,optionvalue2로 데이터 가져오기 -->
+    <select id="getPoption" parameterType="ProductVO"
+            resultType="ProductVO">
+        select * from poption where pno=#{pno} and optionvalue1 = #{optionvalue1}
+                                and optionvalue2 = #{optionvalue2}
+    </select>
+
+    <!-- 상품 등록 -->
+    <insert id="insertProduct" parameterType="ProductVO">
+        insert into product
+        values(pno_seq.nextval,#{pimage},#{detailimage},#{pname},#{price},#{pcontent},sysdate,#{delinfo})
+    </insert>
+    <!-- 옵션 등록 -->
+    <insert id="insertOption" parameterType="ProductVO">
+        insert into poption
+        values(pno_seq.currval,#{optionimage ,jdbcType=VARCHAR},#{option1},#{optionvalue1},#{option2, jdbcType=VARCHAR},#{optionvalue2, jdbcType=VARCHAR},#{remain})
+    </insert>
+    <!--    상품 수정-->
+    <update id="updateProduct" parameterType="ProductVO">
+        update product set
+                           pimage=#{pimage},detailimage=#{detailimage},pname=#{pname},price=#{price},pcontent=#{pcontent}
+        where pno=#{pno}
+    </update>
+    <!--    옵션 삭제-->
+    <delete id="deleteOption" parameterType="ProductVO">
+        delete from poption where pno=#{pno}
+    </delete>
+    <!--    옵션 수정-->
+    <insert id="insertOptionUpdate" parameterType="ProductVO">
+        insert into poption
+        values(#{pno},#{optionimage ,jdbcType=VARCHAR},#{option1},#{optionvalue1},#{option2, jdbcType=VARCHAR},#{optionvalue2, jdbcType=VARCHAR},#{remain})
+    </insert>
+    <!--    상품 삭제-->
+    <update id="deleteProduct" parameterType="ProductVO">
+        update product
+        set delinfo='yes'
+        where pno = #{pno}
+    </update>
+<!--    상품삭제시 poption remain 0-->
+    <update id="deleteProductOption" parameterType="ProductVO">
+        update poption
+        set remain=0
+        where pno = #{pno}
+    </update>
+</mapper>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="CartDao">
+    <!--    장바구니 리스트-->
+    <select id="selectCartList" parameterType="map" resultType="CartVo">
+        SELECT *
+        FROM cart
+        WHERE id = #{id}
+    </select>
+    <!--    장바구니 카운트-->
+    <select id="selectCartCount" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM cart
+        WHERE id = #{id}
+    </select>
+    <!--장바구니에 넣기-->
+    <insert id="insertCart" parameterType="CartVo">
+        INSERT INTO cart
+        VALUES (cartid_seq.nextval, #{id}, #{pname},#{optionname},#{pimage}, #{price}, #{cartcount}, #{pno},#{remain})
+    </insert>
+    <!--    장바구니 수량 변경-->
+    <update id="updateCartCount" parameterType="CartVo">
+        UPDATE cart
+        SET cartcount = #{cartcount}
+        WHERE cartid = #{cartid}
+    </update>
+    <!--    장바구니 삭제-->
+    <delete id="deleteCart" parameterType="int">
+        DELETE FROM cart
+        WHERE cartid = #{cartid}
+    </delete>
+    <!--    장바구니 중복 확인-->
+    <select id="CheckOption" parameterType="CartVo" resultType="int">
+        SELECT count(*)
+        FROM cart
+        WHERE id = #{id} AND optionname = #{optionname}
+    </select>
+    <!--중복확인할때 쓸 장바구니 수량변경-->
+    <update id="updateCartCount2" parameterType="CartVo">
+        UPDATE cart
+        SET cartcount = cartcount + #{cartcount}
+        WHERE id = #{id} AND optionname = #{optionname}
+    </update>
+    <!--    cartid로 장바구니 1개 가져오기-->
+    <select id="selectCart" parameterType="map" resultType="CartVo">
+        SELECT *
+        FROM cart
+        WHERE cartid in
+        <foreach collection="cartIdArray" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <!--    주문시 장바구니 번호 1개씩 저장-->
+    <select id="selectCartOrder" resultType="CartVO">
+        select * FROM cart
+        WHERE cartid = #{cartid}
+    </select>
+    <!--    재고 갱신-->
+    <update id="updateCartRemain" parameterType="CartVo">
+        UPDATE cart
+        SET remain = remain - #{cartcount}
+        WHERE pno=#{pno} and optionname = #{optionname}
+    </update>
+<!--    카트 수량이 재고보다 많을시 수정할 매퍼-->
+    <update id="updateCountAfterOrder" parameterType="CartVo">
+        UPDATE cart
+        SET cartcount =remain
+        <![CDATA[
+        WHERE remain <= cartcount and pno=#{pno} and optionname = #{optionname}
+        ]]>
+    </update>
+<!--    회원 탈퇴시 카드 삭제-->
+    <delete id="deleteCartByMember" parameterType="String">
+        DELETE FROM cart
+        WHERE id = #{id}
+    </delete>
+<!--    상품 삭제시 장바구니 재고 0-->
+    <update id="deleteProductCart" parameterType="int">
+        UPDATE cart
+        SET remain = 0
+        WHERE pno=#{pno}
+    </update>
+
+</mapper>

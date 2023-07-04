@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "HTTP://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+	<settings>
+		<setting name="mapUnderscoreToCamelCase" value="true" />
+	</settings>
+	<typeAliases>
+		<typeAlias alias="BoardVO" type="com.board.VO.BoardVO" />
+		<typeAlias alias="MemberVO" type="com.mall.VO.MemberVO" />
+		<typeAlias alias="ProductVO" type="com.mall.VO.ProductVO" />
+		<typeAlias alias="CartVO" type="com.mall.VO.CartVO" />
+		<typeAlias alias="OrderVO" type="com.mall.VO.OrderVO" />
+	</typeAliases>
+
+	<mappers>
+		<mapper resource="com/board/dao/BoardMapper.xml" />
+		<mapper resource="com/mall/mapper/MemberMapper.xml" />
+		<mapper resource="com/mall/mapper/ProductMapper.xml" />
+		<mapper resource="com/mall/mapper/CartMapper.xml" />
+		<mapper resource="com/mall/mapper/OrderMapper.xml" />
+
+	</mappers>
+
+</configuration>

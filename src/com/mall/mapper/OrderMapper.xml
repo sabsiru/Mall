@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="OrderDao">
+	<!--주문 목록 넣기 -->
+	<insert id="insertOrder" parameterType="OrderVo">
+		INSERT INTO orderlist
+		VALUES (orderid_seq.nextval, #{orderidseq}, #{id}, #{cartid}, #{pno},
+		#{pname}, #{optionname}, #{stockcount},
+		#{pimage}, #{name}, #{phone},
+		#{addr}, 'ready', 'a', 'yet', sysdate)
+	</insert>
+	<!-- 주문목록 -->
+	<select id="selectOrderList" parameterType="map"
+		resultType="OrderVo">
+		SELECT *
+		FROM orderlist
+		WHERE id = #{id}
+	</select>
+	<!-- count -->
+	<select id="selectOrderCount" parameterType="map"
+		resultType="int">
+		SELECT COUNT(*)
+		FROM orderlist
+		WHERE id = #{id}
+	</select>
+	<!-- 재고 갱신 -->
+	<update id="updateRemain" parameterType="OrderVo">
+		UPDATE poption
+		SET remain
+		= remain - #{cartcount}
+		WHERE pno = #{pno}
+		and optionvalue1 =
+		#{optionvalue1}
+		and optionvalue2 = #{optionvalue2 ,jdbcType=VARCHAR}
+	</update>
+	<!-- 주문번호 업데이트 -->
+	<update id="updateOrderidseq" parameterType="OrderVo">
+		UPDATE orderlist
+		SET
+		orderidseq = #{orderid}
+		WHERE orderid = #{orderid}
+	</update>
+	<!-- 주문번호 생성 -->
+	<select id="selectOrderidseq" parameterType="map"
+		resultType="int">
+		SELECT orderid_seq.currval
+		FROM dual
+	</select>
+	<!-- 주문리스트 받아오기 -->
+	<select id="selectOrderListAll" parameterType="map"
+		resultType="OrderVo">
+		SELECT *
+		FROM
+		(SELECT A.*,
+		ROWNUM RNUM FROM (SELECT * FROM orderlist
+		where id=#{id}
+		<include refid="searchProduct" />
+		ORDER BY orderdate desc,orderidseq desc, pno desc)A)
+        <![CDATA[
+		WHERE RNUM >= #{startCount} AND RNUM <= #{endCount}
+		]]>
+	</select>
+
+	<sql id="searchProduct">
+		<if test="keyField != null">
+			<if test="keyField == 'all'">AND(
+				orderidseq LIKE '%' || #{keyWord} || '%'
+				OR pname LIKE
+				'%' || #{keyWord} || '%')
+			</if>
+			<if test="keyField == 'orderidseq'">AND orderidseq LIKE '%' || #{keyWord} || '%'</if>
+			<if test="keyField == 'pname'">AND pname LIKE '%' || #{keyWord} || '%'</if>
+		</if>
+	</sql>
+	<!-- 주문내역에서 쓸 count -->
+	<select id="selectOrderListAllCount" parameterType="map"
+		resultType="Integer">
+		SELECT COUNT(*)
+		FROM orderlist
+		WHERE id=#{id}
+		<include refid="searchProduct" />
+	</select>
+
+	<!-- 탈퇴에서 쓸 count -->
+	<select id="selectOrderListAllCountByDelete"
+		resultType="Integer">
+		SELECT COUNT(*)
+		FROM orderlist
+		WHERE id=#{id}
+	</select>
+	<!-- refund set 'request' -->
+	<update id="updateRefundRequest" parameterType="String">
+		UPDATE orderlist
+		SET refund = 'request'
+		WHERE orderidseq = #{orderidseq} and id=#{id}
+		and pname=#{pname} and
+		optionname=#{optionname}
+	</update>
+	<!-- orderConfirm -->
+	<update id="orderConfirm" parameterType="String">
+		UPDATE orderlist
+		SET
+		receive = 'done'
+		WHERE orderidseq = #{orderidseq} and id=#{id} and
+		pname=#{pname} and
+		optionname=#{optionname}
+	</update>
+	<!-- cancelRequest -->
+	<update id="cancelRequest" parameterType="String">
+		UPDATE orderlist
+		SET
+		refund = 'a'
+		WHERE orderidseq = #{orderidseq} and id=#{id} and
+		pname=#{pname} and
+		optionname=#{optionname}
+	</update>
+	<!-- 상태 변경 -->
+	<update id="updateOrderStatus" parameterType="map">
+		UPDATE orderlist
+		SET ${key} = #{value}
+		WHERE orderidseq = #{orderidseq} and id=#{id} and
+		pname=#{pname} and
+		optionname=#{optionname}
+	</update>
+</mapper>

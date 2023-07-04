@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>  
+<!DOCTYPE mapper   
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BoardDao">
+
+	<sql id="select">
+		SELECT
+		SEQ,NAME,TITLE,CONTENT,PASS,HIT,REGDATE,ref,step,depth
+	</sql>
+	<!-- 페이징 -->
+	<select id="boardList" parameterType="map" resultType="BoardVO">
+		<include refid="select" />
+		FROM
+		(SELECT A.*,
+		ROWNUM RNUM FROM (SELECT * FROM BOARD where 1=1
+		<include refid="searchOracle" />
+		ORDER BY ref DESC, step asc)A)
+		<![CDATA[
+		WHERE RNUM >= #{startCount} AND RNUM <= #{endCount}
+		]]>
+	</select>
+
+	<!-- 검색 -->
+	<sql id="searchOracle">
+		<if test="keyField != null">
+			<if test="keyField == 'all'">AND(
+				TITLE LIKE '%' || #{keyWord} || '%'
+				OR CONTENT LIKE '%' || #{keyWord} || '%'
+				OR NAME LIKE '%' || #{keyWord} || '%'
+				OR SEQ IN (SELECT SEQ FROM BOARDFILE WHERE orgfile LIKE '%' ||
+				#{keyWord} || '%'))</if>
+			<if test="keyField == 'title'">AND TITLE LIKE '%' || #{keyWord} || '%'</if>
+			<if test="keyField == 'content'">AND CONTENT LIKE '%' || #{keyWord} || '%'</if>
+			<if test="keyField == 'name'">AND NAME LIKE '%' || #{keyWord} || '%'</if>
+			<if test="keyField == 'orgfile'">AND SEQ IN (SELECT SEQ FROM BOARDFILE WHERE orgfile LIKE
+				'%' || #{keyWord} || '%')</if>
+		</if>
+	</sql>
+
+	<select id="boardCount" parameterType="map" resultType="Integer">
+		SELECT COUNT (*) FROM BOARD where 1=1
+		<include refid="searchOracle" />
+
+	</select>
+	<select id="getSeq" resultType="Integer">
+		SELECT board_seq.nextval FROM
+		dual
+	</select>
+	<!-- 글 등록 -->
+	<insert id="insert" parameterType="BoardVO">
+		INSERT INTO
+		BOARD(SEQ,NAME,TITLE,CONTENT,PASS,hit,REGDATE,REF)
+		VALUES(#{seq},#{name},#{title},#{content},#{pass},0,sysdate,#{seq})
+	</insert>
+
+	<!-- 파일업로드 -->
+	<insert id="fileUpload" parameterType="BoardVO">
+		insert into boardfile
+		(seq,orgfile,storefile,filepath)
+		values
+		(#{seq},#{orgfile},#{storefile},#{filepath})
+
+	</insert>
+
+	<!-- #{orgfile,jdbcType=VARCHAR},#{storefile, jdbcType=VARCHAR}) -->
+
+	<!-- 글 읽기 -->
+	<select id="select" resultType="BoardVO">
+		<include refid="select" />
+		from board where
+		seq=#{seq}
+	</select>
+	<!-- 파일 읽기 -->
+	<select id="selectFile" resultType="BoardVO" parameterType="map">
+		select *
+		from BOARDFILE where
+		seq=#{seq} order by storefile
+	</select>
+
+	<!-- 파일 삭제 -->
+	<select id="fileDelete" parameterType="BoardVO">
+		delete from boardfile
+		where
+		seq=#{seq}
+	</select>
+
+	<!-- 파일 수정시 삭제 -->
+	<select id="fileModifyDelete" parameterType="map"
+		resultType="BoardVO">
+		delete from boardfile where STOREFILE='${storefile}' and seq=#{seq}
+	</select>
+
+	<!--조회수 증가(hit) -->
+	<update id="hitIncrease" parameterType="Integer">
+		update board set
+		hit=hit+1 where seq=#{seq}
+	</update>
+
+	<!-- 글 삭제 -->
+	<delete id="delete" parameterType="BoardVO">
+		delete from board where
+		seq=#{seq}
+	</delete>
+
+	<!-- 글 수정 -->
+	<update id="update" parameterType="BoardVO">
+		update board set
+		title=#{title}, content=#{content} where
+		seq=#{seq}
+	</update>
+
+	<!-- 답글 작성 -->
+	<insert id="reply" parameterType="BoardVO">
+		insert into
+		board(SEQ,NAME,TITLE,CONTENT,PASS,hit,REGDATE,REF,step,depth)
+		values(#{seq}, #{name}, 'RE:'||#{title}, #{content}
+		,#{pass}, 0,
+		sysdate,#{ref},#{step},#{depth})
+	</insert>
+
+	<update id="replyUpdate" parameterType="BoardVO">
+		update board
+	<![CDATA[
+	set step=step+1 where ref=#{ref} and step > #{depth}
+	]]>
+	</update>
+
+	<!-- filedelete -->
+	<update id="filedelete" parameterType="BoardVO">
+		update board set
+		ORGFILE=${orgfile, jdbyType=VARCHAR},STOREFILE=${storefile,
+		jdbyType=VARCHAR} where seq=#{seq}
+	</update>
+
+
+</mapper>
+
+
+
+
+
+
+
